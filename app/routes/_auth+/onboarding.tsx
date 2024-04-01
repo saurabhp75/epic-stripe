@@ -86,7 +86,7 @@ export async function action({ request }: ActionFunctionArgs) {
 			}).transform(async data => {
 				if (intent !== null) return { ...data, session: null }
 
-				const session = await signup({ ...data, email })
+				const session = await signup({ ...data, email, request })
 				return { ...data, session }
 			}),
 		async: true,

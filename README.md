@@ -1,54 +1,59 @@
-<div align="center">
-  <h1 align="center"><a href="https://www.epicweb.dev/epic-stack">The Epic Stack 🚀</a></h1>
-  <strong align="center">
-    Ditch analysis paralysis and start shipping Epic Web apps.
-  </strong>
-  <p>
-    This is an opinionated project starter and reference that allows teams to
-    ship their ideas to production faster and on a more stable foundation based
-    on the experience of <a href="https://kentcdodds.com">Kent C. Dodds</a> and
-    <a href="https://github.com/epicweb-dev/epic-stack/graphs/contributors">contributors</a>.
-  </p>
-</div>
+# Stripe with Epic Stack
+
+## Introduction
+
+- This project integrates Stripe payments with
+  [Epic Stack](https://github.com/epicweb-dev/epic-stack) and is heavily
+  inspired by [stripe-stack](https://github.com/dev-xo/stripe-stack)
+
+## How to run locally
+
+- Clone the repo. In order to use Stripe Subscriptions and seed our database,
+  we'll require to get the secret keys from our Stripe Dashboard.
+
+- Create a new [Stripe Account](https://dashboard.stripe.com/login).
+- Visit [API Keys](https://dashboard.stripe.com/test/apikeys) section and copy
+  the `Publishable` and `Secret` keys.
+- Paste each one of them into your `.env` file as `STRIPE_PUBLIC_KEY` and
+  `STRIPE_SECRET_KEY` respectively.
+- Install the [Stripe CLI.](https://stripe.com/docs/stripe-cli) Once installed
+  run the following command in your console:
 
 ```sh
-npx create-epic-app@latest
+stripe listen --forward-to localhost:3000/api/webhook
 ```
 
-[![The Epic Stack](https://github-production-user-asset-6210df.s3.amazonaws.com/1500684/246885449-1b00286c-aa3d-44b2-9ef2-04f694eb3592.png)](https://www.epicweb.dev/epic-stack)
+This should give you a Webhook Secret Key. Copy and paste it into your `.env`
+file as `DEV_STRIPE_WEBHOOK_ENDPOINT`.
 
-[The Epic Stack](https://www.epicweb.dev/epic-stack)
+> [!IMPORTANT] This command should be running in your console while developing
+> and running the `create-stripe-plan.ts` script.
 
-<hr />
+- Run the seed script to populate Epic stack related data in the db.
 
-## Watch Kent's Introduction to The Epic Stack
+```sh
+npx prisma db seed
+```
 
-[![Epic Stack Talk slide showing Flynn Rider with knives, the text "I've been around and I've got opinions" and Kent speaking in the corner](https://github-production-user-asset-6210df.s3.amazonaws.com/1500684/277818553-47158e68-4efc-43ae-a477-9d1670d4217d.png)](https://www.epicweb.dev/talks/the-epic-stack)
+- Run the following script to programatically create Stripe Plans and populate
+  the db.
 
-["The Epic Stack" by Kent C. Dodds](https://www.epicweb.dev/talks/the-epic-stack)
+```sh
+npx tsx ./other/stripe/create-stripe-plans.ts
+```
 
-## Docs
+> **Warning** Run the above script only once as it creates subscriptions related
+> entities on Prisma platform.
 
-[Read the docs](https://github.com/epicweb-dev/epic-stack/blob/main/docs)
-(please 🙏).
+- Run dev server (`npm run dev`) and go to `/account` page.
+
+## Further docs
+
+- [Stripe-stack](https://github.com/dev-xo/stripe-stack)
+- [Epic Stack](https://github.com/dev-xo/stripe-stack)
 
 ## Support
 
-- 🆘 Join the
-  [discussion on GitHub](https://github.com/epicweb-dev/epic-stack/discussions)
-  and the [KCD Community on Discord](https://kcd.im/discord).
-- 💡 Create an
-  [idea discussion](https://github.com/epicweb-dev/epic-stack/discussions/new?category=ideas)
-  for suggestions.
-- 🐛 Open a [GitHub issue](https://github.com/epicweb-dev/epic-stack/issues) to
-  report a bug.
-
-## Branding
-
-Want to talk about the Epic Stack in a blog post or talk? Great! Here are some
-assets you can use in your material:
-[EpicWeb.dev/brand](https://epicweb.dev/brand)
-
-## Thanks
-
-You rock 🪨
+If you find this template useful, support it with a
+[Star ⭐](https://github.com/saurabhp75/epic-stripe)<br /> It helps the
+repository grow and gives me motivation to keep working on it. Thank you!

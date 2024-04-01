@@ -1,10 +1,22 @@
-import { type Connection, type Password, type User } from '@prisma/client'
+import { invariant } from '@epic-web/invariant'
+import {
+	type Connection,
+	type Password,
+	type User,
+	type Prisma,
+} from '@prisma/client'
 import { redirect } from '@remix-run/node'
 import bcrypt from 'bcryptjs'
 import { Authenticator } from 'remix-auth'
 import { safeRedirect } from 'remix-utils/safe-redirect'
+import { getPlanById } from '#app/models/plan/get-plan.ts'
+import { updateUserById } from '#app/models/user/update-user.ts'
+import { createStripeCustomer } from '#app/services/stripe/api/create-customer.ts'
+import { createStripeSubscription } from '#app/services/stripe/api/create-subscription.ts'
+import { PlanId } from '#app/services/stripe/plans.ts'
 import { connectionSessionStorage, providers } from './connections.server.ts'
 import { prisma } from './db.server.ts'
+import { getDefaultCurrency } from './locales.ts'
 import { combineHeaders, downloadFile } from './misc.tsx'
 import { type ProviderUser } from './providers/provider.ts'
 import { authSessionStorage } from './session.server.ts'
@@ -109,16 +121,63 @@ export async function resetUserPassword({
 	})
 }
 
+// Create a strongly typed `SessionSelect` object with `satisfies`
+const sessionSelect = {
+	id: true,
+	expirationDate: true,
+	user: { select: { id: true } },
+} satisfies Prisma.SessionSelect
+
+// Infer the resulting payload type
+type MySessionPayload = Prisma.SessionGetPayload<{
+	select: typeof sessionSelect
+}>
+
+async function createFreeSubscription({
+	email,
+	name,
+	request,
+	session,
+}: {
+	email: User['email']
+	name: User['name']
+	request: Request
+	session: MySessionPayload
+}) {
+	invariant(name, 'name is required to onboard a user')
+	// Create Stripe customerId for the user
+	const customer = await createStripeCustomer({ email, name })
+	invariant(customer, 'Unable to create Stripe Customer.')
+
+	// Update user with Stripe customer-id
+	const user = await updateUserById(session.user.id, {
+		customerId: customer.id,
+	})
+
+	// Get client's currency and Free Plan price ID.
+	const currency = getDefaultCurrency(request)
+	const freePlan = await getPlanById(PlanId.FREE, { prices: true })
+	const freePlanPrice = freePlan?.prices.find(
+		price => price.interval === 'year' && price.currency === currency,
+	)
+	if (!freePlanPrice) throw new Error('Unable to find Free Plan price.')
+
+	// Assign free subsription plan to the user
+	createStripeSubscription(user.customerId, freePlanPrice.id)
+}
+
 export async function signup({
 	email,
 	username,
 	password,
 	name,
+	request,
 }: {
 	email: User['email']
 	username: User['username']
 	name: User['name']
 	password: string
+	request: Request
 }) {
 	const hashedPassword = await getPasswordHash(password)
 
@@ -139,7 +198,14 @@ export async function signup({
 				},
 			},
 		},
-		select: { id: true, expirationDate: true },
+		select: sessionSelect,
+	})
+
+	await createFreeSubscription({
+		email,
+		name,
+		request,
+		session,
 	})
 
 	return session
@@ -152,6 +218,7 @@ export async function signupWithConnection({
 	providerId,
 	providerName,
 	imageUrl,
+	request,
 }: {
 	email: User['email']
 	username: User['username']
@@ -159,6 +226,7 @@ export async function signupWithConnection({
 	providerId: Connection['providerId']
 	providerName: Connection['providerName']
 	imageUrl?: string
+	request: Request
 }) {
 	const session = await prisma.session.create({
 		data: {
@@ -176,7 +244,14 @@ export async function signupWithConnection({
 				},
 			},
 		},
-		select: { id: true, expirationDate: true },
+		select: sessionSelect,
+	})
+
+	await createFreeSubscription({
+		email,
+		name,
+		request,
+		session,
 	})
 
 	return session

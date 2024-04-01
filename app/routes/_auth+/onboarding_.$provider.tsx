@@ -136,6 +136,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 				email,
 				providerId,
 				providerName,
+				request,
 			})
 			return { ...data, session }
 		}),
