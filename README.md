@@ -43,7 +43,7 @@ npx tsx ./other/stripe/create-stripe-plans.ts
 ```
 
 > **Warning** Run the above script only once as it creates subscriptions related
-> entities on Prisma platform.
+> entities on Stripe platform.
 
 - Run dev server (`npm run dev`) and go to `/account` page.
 
