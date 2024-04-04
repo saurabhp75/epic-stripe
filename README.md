@@ -47,6 +47,24 @@ npx tsx ./other/stripe/create-stripe-plans.ts
 
 - Run dev server (`npm run dev`) and go to `/account` page.
 
+## Decisions and the reasoning behind application architecture
+
+- This example implements a common SaaS subscription use case with monthly and
+  yearly pricing. Each subscription variant can optionally be configured with a
+  limit on number of units user can consume.
+- User subscription state is stored in the application db, so as not to fetch
+  from Stripe when needed. The state will be kept in sync with Stripe using a
+  webhook. See this
+  [article](https://dev.to/stripe/enable-your-saas-users-to-access-paid-features-with-webhooks-4n8f)
+  for details.
+
+- There are endpoints under `/services/stripe/api` and
+  `/resources/stripe/create-*` within the application to manage Stripe calls.
+  Communication with Stripe end point is managed by stacking redirects, if you
+  need clean browser history, these endpoints can be converted to stacked
+  asynchronous calls but in that case youy need to handle edge cases like when
+  user cancels the page load while waiting for stacked async calls.
+
 ## Further docs
 
 - [Stripe-stack](https://github.com/dev-xo/stripe-stack)
